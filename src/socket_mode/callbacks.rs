@@ -61,6 +61,14 @@ where
             + Send
             + Sync,
     >,
+    pub suggestion_callback: Box<
+        dyn SlackSocketModeListenerCallback<
+                SCHC,
+                SlackInteractionBlockSuggestionEvent,
+                UserCallbackResult<SlackBlockSuggestionResponse>,
+            > + Send
+            + Sync,
+    >,
     pub push_events_callback: Box<
         dyn SlackSocketModeListenerCallback<SCHC, SlackPushEventCallback, UserCallbackResult<()>>
             + Send
@@ -77,6 +85,7 @@ where
             hello_callback: Box::new(Self::empty_hello_callback),
             command_callback: Box::new(Self::empty_command_events_callback),
             interaction_callback: Box::new(Self::empty_interaction_events_callback),
+            suggestion_callback: Box::new(Self::empty_suggestion_events_callback),
             push_events_callback: Box::new(Self::empty_push_events_callback),
         }
     }
@@ -141,6 +150,32 @@ where
     ) -> UserCallbackResult<()> {
         warn!(
             "No callback is specified for interactive events: {:?}",
+            event
+        );
+        Err(Box::new(SlackClientError::SystemError(
+            SlackClientSystemError::new()
+                .with_message("No callback is specified for interactive events".to_string()),
+        )))
+    }
+
+    pub fn with_suggestion_events<F>(
+        mut self,
+        suggestion_events_fn: UserCallbackFunction<SlackInteractionBlockSuggestionEvent, F, SCHC>,
+    ) -> Self
+    where
+        F: Future<Output = UserCallbackResult<SlackBlockSuggestionResponse>> + Send + 'static,
+    {
+        self.suggestion_callback = Box::new(suggestion_events_fn);
+        self
+    }
+
+    async fn empty_suggestion_events_callback(
+        event: SlackInteractionBlockSuggestionEvent,
+        _client: Arc<SlackClient<SCHC>>,
+        _states: SlackClientEventsUserState,
+    ) -> UserCallbackResult<SlackBlockSuggestionResponse> {
+        warn!(
+            "No callback is specified for suggestion events: {:?}",
             event
         );
         Err(Box::new(SlackClientError::SystemError(
