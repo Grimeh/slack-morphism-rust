@@ -104,7 +104,13 @@ where
                             )
                             .await
                         {
-                            Ok(reply) => Some(serde_json::to_string(&reply).unwrap()),
+                            Ok(payload) => {
+                                let reply = SlackSocketModeSuggestionEventAck {
+                                    envelope_id: envelope_params.envelope_id,
+                                    payload,
+                                };
+                                Some(serde_json::to_string(&reply).unwrap())
+                            }
                             Err(err) => {
                                 if self.listener_environment.error_handler.clone()(
                                     err,

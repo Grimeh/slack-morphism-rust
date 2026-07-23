@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 use crate::events::{
-    SlackCommandEvent, SlackCommandEventResponse, SlackInteractionEvent, SlackPushEventCallback,
+    SlackBlockSuggestionResponse, SlackCommandEvent, SlackCommandEventResponse,
+    SlackInteractionEvent, SlackPushEventCallback,
 };
 use crate::*;
 use rvstruct::*;
@@ -100,4 +101,11 @@ pub struct SlackSocketModeCommandEventAck {
     #[serde(flatten)]
     pub envelope_ack_params: SlackSocketModeEventCommonAcknowledge,
     pub payload: Option<SlackCommandEventResponse>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Builder)]
+pub struct SlackSocketModeSuggestionEventAck {
+    pub envelope_id: SlackSocketModeEnvelopeId,
+    pub payload: SlackBlockSuggestionResponse,
 }
