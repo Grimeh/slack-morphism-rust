@@ -1,3 +1,4 @@
+use crate::events::*;
 use crate::models::socket_mode::*;
 use crate::socket_mode::clients_manager::*;
 use crate::*;
@@ -88,6 +89,43 @@ where
                         );
                         clients_manager.restart_client(client_id).await;
                         None
+                    }
+                    SlackSocketModeEvent::Interactive(SlackSocketModeInteractiveEvent {
+                        envelope_params,
+                        payload: SlackInteractionEvent::BlockSuggestion(payload),
+                    }) => {
+                        match self
+                            .callbacks
+                            .suggestion_callback
+                            .call(
+                                payload,
+                                self.listener_environment.client.clone(),
+                                self.listener_environment.user_state.clone(),
+                            )
+                            .await
+                        {
+                            Ok(reply) => Some(serde_json::to_string(&reply).unwrap()),
+                            Err(err) => {
+                                if self.listener_environment.error_handler.clone()(
+                                    err,
+                                    self.listener_environment.client.clone(),
+                                    self.listener_environment.user_state.clone(),
+                                )
+                                .is_success()
+                                {
+                                    Some(
+                                        serde_json::to_string(
+                                            &SlackSocketModeEventCommonAcknowledge::new(
+                                                envelope_params.envelope_id,
+                                            ),
+                                        )
+                                        .unwrap(),
+                                    )
+                                } else {
+                                    None
+                                }
+                            }
+                        }
                     }
                     SlackSocketModeEvent::Interactive(event) => {
                         let reply =
